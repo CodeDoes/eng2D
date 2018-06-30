@@ -9,3 +9,4 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 0.18.0"
+requires "https://github.com/CodeDoes/class_macro.git >= 0.2.0"
