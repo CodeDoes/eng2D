@@ -8,15 +8,29 @@ proc remove[T](self:var seq[T],val:T)=
 
 class:
   System* of RootObj:
-    discard
+    var
+      m_world: World
+    proc world*():auto=self.m_world
+    method add(component: Component){.base.}=
+      discard
+    method remove(component: Component){.base.}=
+      discard
   World* of RootObj:
     var 
       m_entities: seq[Entity]
       m_systems: seq[System]
-    proc add*(item:System)=self.m_systems.add item
-    proc add*(item:Entity)=self.m_entities.add item
-    proc remove*(item:System)=self.m_systems.remove item
-    proc remove*(item:Entity)=self.m_entities.remove item
+    proc add*(item:System)=
+      item.m_world=self
+      self.m_systems.add item
+    proc add*(item:Entity)=
+      item.m_world=self
+      self.m_entities.add item
+    proc remove*(item:System)=
+      item.m_world=self
+      self.m_systems.remove item
+    proc remove*(item:Entity)=
+      item.m_world=self
+      self.m_entities.remove item
   Component* of RootObj:
     var 
       m_owner: Entity
@@ -73,11 +87,17 @@ proc rotated*(self:Vec2, angle: float):Vec2=
     x: self.x * c - self.y * s, 
     y: self.x * s + self.y * c
     )
-proc `+`*(self,other:Vec2):Vec2=
-  return (
-    x: self.x+other.x,
-    y: self.x+other.y
-  )
+template elementwise(f)=
+  proc f*(a,b:Vec2):Vec2=
+    return (
+      x: f(a.x,b.x),
+      y: f(a.y,b.y)
+    )
+elementwise `+`
+elementwise `-`
+elementwise `/`
+elementwise `*`
+
 proc `*`*(self:Matrix, point:Vec2):Vec2=
   self.pos + point.rotated(self.angle) * self.scale
 proc `*`*(self:Matrix, other:Matrix):Matrix=
@@ -107,3 +127,22 @@ class Transform* of Component:
         self.parent.world_matrix
       else:
         self.local_matrix
+type 
+  Drag= float
+  VelocityComponent[K] = object
+    velocity: K
+    drag: Drag
+  LinearVelocity = VelocityComponent[Vec2]
+  AngularVelocity = VelocityComponent[Angle]
+
+class Velocity* of Component:
+  var 
+    transform: Transform
+    linear: LinearVelocity
+    angular: AngularVelocity
+
+class VelocitySystem of System:
+  var
+    m_vel_comps = newSeq[Velocity]()
+  method add(component:Component)=
+    
